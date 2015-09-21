@@ -1,0 +1,30 @@
+{
+  "name": "gourmand",
+  "version": "0.0.0",
+  "description": "Incremental build tool for JavaScript",
+  "main": "index.js",
+  "scripts": {
+    "test": "TBD"
+  },
+  "repository": {
+    "type": "git",
+    "url": "TBD"
+  },
+  "keywords": [
+    "build",
+    "builder",
+    "pipeline",
+    "make",
+    "tool",
+    "incremental",
+    "increment"
+  ],
+  "author": "Victor Portnov",
+  "license": "MIT",
+  "dependencies": {
+    "interpret": "^0.6.5",
+    "liftoff": "^2.1.0",
+    "minimist": "^1.2.0",
+    "v8flags": "^2.0.10"
+  }
+}
