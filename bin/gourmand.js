@@ -6,6 +6,7 @@ var Liftoff = require('liftoff');
 var interpret = require('interpret');
 var v8flags = require('v8flags');
 var argv = require('minimist')(process.argv.slice(2));
+var util = require('util');
 
 var projectCWD = process.cwd();
 
@@ -62,5 +63,5 @@ function onLaunched (env) {
   require(env.configPath);
   var gourmand = require(env.modulePath);
 
-  console.log('Gourmand is', gourmand);
+  console.log('Gourmand is', util.inspect(gourmand, {depth: null, colors: true}));
 }
