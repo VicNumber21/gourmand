@@ -16,14 +16,33 @@ var Link = function (value, prev) {
 var Chain = function (link) {
   var actions = this._actions = [];
 
-  while (link._value) {
-    actions.unshift(link._value.actionId);
-    link = link._prev;
+  if (link instanceof Link) {
+    while (link._value) {
+      actions.unshift(link._value.actionId);
+      link = link._prev;
+    }
+  }
+  else {
+    actions.push(link);
   }
 };
 
 Chain.prototype.hashcode = function () {
   return 'Chain<[' + this._actions.join(',') + ']>';
+};
+
+Chain.prototype.caches = function () {
+  var ret = [];
+  var actions = this._actions;
+  var length = actions.length;
+  var cacheId = actions[0];
+
+  for (var it = 0; it < length; ++it) {
+    cacheId += actions[it];
+    ret.push(cacheId);
+  }
+
+  return ret;
 };
 
 var Action = function (pluginName, args) {
@@ -109,6 +128,7 @@ var Gourmand = function () {
   this._tasks = {};
   this._actions = {};
   this._plugins = {};
+  this._caches = {};
   this._watches = {
     'default': this._tasks
   };
@@ -120,7 +140,8 @@ var Gourmand = function () {
 Gourmand.prototype.task = function (name, deps, action) {
   var task = this._tasks[name] = {};
   task.deps = deps;
-  task.action = action instanceof Link? new Chain(action): action;
+  task.action = new Chain(action);
+  this.registerCaches(task.action.caches());
 };
 
 Gourmand.prototype.require = function (pluginName) {
@@ -146,6 +167,14 @@ Gourmand.prototype.file = {
 
 Gourmand.prototype.registerAction = function (action) {
   this._actions[action.actionId] = action;
+};
+
+Gourmand.prototype.registerCaches = function (caches) {
+  var length = caches.length;
+
+  for (var it = 0; it < length; ++it) {
+    this._caches[caches[it]] = 'cache'; // TODO implement the right cache
+  }
 };
 
 var instance = new Gourmand();
