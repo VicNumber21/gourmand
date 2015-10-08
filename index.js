@@ -1,5 +1,8 @@
 'use strict';
 
+var hashcode = require('./lib/hashcode');
+
+
 var Link = function (value, prev) {
   this._value = value;
   this._next = [];
@@ -19,10 +22,19 @@ var Chain = function (link) {
   }
 };
 
-var Action = function (pluginName, actionId, args) {
+Chain.prototype.hashcode = function () {
+  return 'Chain<[' + this._actions.join(',') + ']>';
+};
+
+var Action = function (pluginName, args) {
   this.pluginName = pluginName;
-  this.actionId = actionId;
   this.args = args;
+  this.actionId = hashcode(this);
+};
+
+Action.prototype.hashcode = function () {
+  var argsHash = hashcode(this.args);
+  return 'Action<' + this.pluginName + ':' + argsHash.slice(argsHash.indexOf(':') + 1)  + '>';
 };
 
 // GourmandPlugin
@@ -34,10 +46,8 @@ var GourmandPlugin = function (pluginName, shortName) {
 GourmandPlugin.prototype.register = function (gourmandObj) {
   var pluginName = this._pluginName;
   var shortName = this._shortName;
-  var counter = 0;
 
   Link.prototype[shortName] = function () {
-    var actionId = shortName + '-' + (counter++);
     var args = [];
 
     for (var it = 0; it < arguments.length; ++it) {
@@ -50,7 +60,7 @@ GourmandPlugin.prototype.register = function (gourmandObj) {
       args.push(arg);
     }
 
-    var action = new Action(pluginName, actionId, args);
+    var action = new Action(pluginName, args);
     gourmandObj.registerAction(action);
 
     return new Link(action, this);
@@ -97,9 +107,6 @@ var GourmandPluginRegistrar = {
 // Gourmand
 var Gourmand = function () {
   this._tasks = {};
-  // TODO after action created, they contains dups
-  // TODO create method 'normalize' to eliminate all dups
-  // TODO dup here is the same action in the same chain (the same actions in different chains are not a dup)
   this._actions = {};
   this._plugins = {};
   this._watches = {
@@ -113,7 +120,7 @@ var Gourmand = function () {
 Gourmand.prototype.task = function (name, deps, action) {
   var task = this._tasks[name] = {};
   task.deps = deps;
-  task. action = action instanceof Link? new Chain(action): action;
+  task.action = action instanceof Link? new Chain(action): action;
 };
 
 Gourmand.prototype.require = function (pluginName) {
