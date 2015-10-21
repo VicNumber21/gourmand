@@ -22,6 +22,7 @@
   "author": "Victor Portnov",
   "license": "MIT",
   "dependencies": {
+    "glob": "^5.0.15",
     "interpret": "^0.6.5",
     "liftoff": "^2.1.0",
     "minimist": "^1.2.0",

@@ -6,7 +6,6 @@ var Liftoff = require('liftoff');
 var interpret = require('interpret');
 var v8flags = require('v8flags');
 var argv = require('minimist')(process.argv.slice(2));
-var util = require('util');
 
 var projectCWD = process.cwd();
 
@@ -30,7 +29,7 @@ var cliPackage = require('../package');
 var versionFlag = argv.v || argv.version;
 var tasksFlag = argv.T || argv.tasks;
 var tasks = argv._;
-var toRun = tasks.length ? tasks : ['default'];
+var tasksToRun = tasks.length ? tasks : ['default'];
 
 cli.on('require', function(name) {
   //TODO improve logging
@@ -58,10 +57,9 @@ cli.launch({
 function onLaunched (env) {
   console.log('gourmand launched in', projectCWD);
   console.log('Env is', env);
-  console.log('Tasks', toRun);
+  console.log('Tasks', tasksToRun);
 
   require(env.configPath);
   var gourmand = require(env.modulePath);
-
-  console.log('Gourmand is', util.inspect(gourmand, {depth: null, colors: true}));
+  gourmand.run(tasksToRun);
 }

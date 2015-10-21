@@ -1,6 +1,8 @@
 'use strict';
 
+var Glob = require('glob').Glob;
 var hashcode = require('./lib/hashcode');
+var is = require('./lib/is');
 
 
 var Link = function (value, prev) {
@@ -14,7 +16,7 @@ var Link = function (value, prev) {
 };
 
 var Chain = function (link) {
-  var actions = this._actions = [];
+  var actions = this.actions = [];
 
   if (link instanceof Link) {
     while (link._value) {
@@ -28,12 +30,12 @@ var Chain = function (link) {
 };
 
 Chain.prototype.hashcode = function () {
-  return 'Chain<[' + this._actions.join(',') + ']>';
+  return 'Chain<[' + this.actions.join(',') + ']>';
 };
 
 Chain.prototype.caches = function () {
   var ret = [];
-  var actions = this._actions;
+  var actions = this.actions;
   var length = actions.length;
   var cacheId = actions[0];
 
@@ -86,12 +88,26 @@ GourmandPlugin.prototype.register = function (gourmandObj) {
   };
 };
 
+
+GourmandPlugin.prototype.run = function (args, inputCache, outputCache) {
+  console.log('Run "' + this._pluginName + '" with args = ', args, ', in = ', inputCache, ", out = ", outputCache);
+};
+
 // Src plugin
 var GourmandSrcPlugin = function () {
   GourmandPlugin.call(this, 'gourmand-src', 'src');
 };
 
 GourmandSrcPlugin.prototype = Object.create(GourmandPlugin.prototype);
+
+GourmandSrcPlugin.prototype.run = function (args, inputCache, outputCache) {
+  console.log('Run "' + this._pluginName + '" with args = ', args, ', in = ', inputCache, ", out = ", outputCache);
+
+  this._glob = new Glob(args[0], {sync: true, stat: true});
+
+  var util = require('util');
+  console.log('Glob is', util.inspect(this._glob, {depth: null, colors: true}));
+};
 
 // Dest plugin
 var GourmandDestPlugin = function () {
@@ -174,6 +190,55 @@ Gourmand.prototype.registerCaches = function (caches) {
 
   for (var it = 0; it < length; ++it) {
     this._caches[caches[it]] = 'cache'; // TODO implement the right cache
+  }
+};
+
+Gourmand.prototype.run = function (taskIds) {
+  var util = require('util');
+  console.log('Gourmand is', util.inspect(this, {depth: null, colors: true}));
+
+  var actionsToRun = [];
+  var errors = [];
+
+  for (var it = 0; it < taskIds.length; ++it) {
+    var taskId = taskIds[it];
+    var task = this._tasks[taskId];
+
+    if (is.Undefined(task) && taskId !== 'default') {
+      errors.push('Task "' + taskId + '" not found');
+    }
+
+    if (errors.length === 0) {
+      if (is.Undefined(task) && taskId === 'default') {
+        actionsToRun = [];
+        var keys = Object.keys(this._tasks);
+
+        for (var keyIdx = 0; keyIdx < keys.length; ++keyIdx) {
+          actionsToRun.push(this._tasks[keys[keyIdx]].action);
+        }
+
+        break;
+      }
+      else {
+        actionsToRun.push(task.action);
+      }
+    }
+  }
+
+  if (errors.length > 0) {
+    throw new Error(errors);
+  }
+
+  for (var it = 0; it < actionsToRun.length; ++it) {
+    var runningAction = actionsToRun[it];
+    var caches = runningAction.caches();
+
+    for (var idx = 0; idx < runningAction.actions.length; ++idx) {
+      var actionId = runningAction.actions[idx];
+      var spec = this._actions[actionId];
+      var plugin = this._plugins[spec.pluginName];
+      plugin.run(spec.args, this._caches[caches[idx]], this._caches[caches[idx + 1]]);
+    }
   }
 };
 
