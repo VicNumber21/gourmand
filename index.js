@@ -3,6 +3,7 @@
 var Glob = require('glob').Glob;
 var hashcode = require('./lib/hashcode');
 var is = require('./lib/is');
+var File = require('./lib/file');
 
 
 var Link = function (value, prev) {
@@ -103,9 +104,20 @@ GourmandSrcPlugin.prototype = Object.create(GourmandPlugin.prototype);
 GourmandSrcPlugin.prototype.run = function (args, inputCache, outputCache) {
   console.log('Run "' + this._pluginName + '" with args = ', args, ', in = ', inputCache, ", out = ", outputCache);
 
-  this._glob = new Glob(args[0], {sync: true, stat: true});
-
   var util = require('util');
+  this._glob = new Glob(args[0]);
+  this._glob.on('end', (function (matches) {
+    //TODO why it triggers twice?
+    for (var it = 0; it < matches.length; ++it) {
+      var filepath = matches[it];
+      var file = File.fromPath(filepath);
+      file.load();
+      console.log('Match:', file);
+      var newFile = File.create('build', file.filename(), file.content());
+      newFile.save();
+    }
+  }).bind(this._glob));
+
   console.log('Glob is', util.inspect(this._glob, {depth: null, colors: true}));
 };
 
@@ -178,7 +190,7 @@ Gourmand.prototype.watch = function (name, tasks) {
 
 Gourmand.prototype.file = {
   path: '__GourmandFilePlaceholderPath__',
-  nameWithExtension: '__GourmandFilePlaceholderNameWithExtension__'
+  filename: '__GourmandFilePlaceholderFilename'
 };
 
 Gourmand.prototype.registerAction = function (action) {
